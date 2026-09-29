@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Citygram — Nonogram Puzzles of Europe's Cities</title>
+<meta name="description" content="Citygram is a nonogram puzzle game for iPhone. Solve 87 hand-crafted picture puzzles across 15 cities in the UK, France and Italy, plus a new daily puzzle every day.">
+<meta name="apple-itunes-app" content="app-id=6781027728">
+<meta name="theme-color" content="#1B1548">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://zaimod.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Citygram — Travel Europe one puzzle at a time">
+<meta property="og:description" content="87 hand-crafted nonogram puzzles across 15 European cities, and a new daily puzzle every day.">
+<meta property="og:url" content="https://zaimod.github.io/">
+<meta property="og:image" content="https://zaimod.github.io/icon.png">
+<meta name="twitter:card" content="summary">
+<style>
+  :root {
+    --indigo: #3C3489;
+    --indigo-soft: #7F77DD;
+    --night: #1B1548;
+    --night-deep: #110D33;
+    --pin: #E5484D;
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --parchment: #F0EEE8;
+    --ink: #1A1A18;
+    --ink-soft: #6B6A64;
+    --rule: #D3D1C7;
+    --cell-empty: #FFFFFF;
+    --cell-filled: #3C3489;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --indigo: #9E97F0;
+      --bg: #0E0C1F;
+      --surface: #17142E;
+      --parchment: #1F1B3D;
+      --ink: #EDECF5;
+      --ink-soft: #A5A2B8;
+      --rule: #2E2A52;
+      --cell-filled: #7F77DD;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  a { color: var(--indigo); text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--indigo-soft);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  /* ─── Hero ─────────────────────────────────────────────── */
+  .hero {
+    background:
+      radial-gradient(ellipse 60% 70% at 30% 40%, rgba(127,119,221,0.28), transparent 70%),
+      linear-gradient(170deg, var(--night) 0%, var(--night-deep) 100%);
+    color: #F1F0FA;
+    padding: 20px 0 72px;
+    overflow: hidden;
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 56px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 18px;
+  }
+  .brand img { width: 36px; height: 36px; border-radius: 9px; }
+  .nav-links { display: flex; gap: 20px; font-size: 15px; }
+  .nav-links a { color: #C9C6E8; text-decoration: none; }
+  .nav-links a:hover { color: #FFFFFF; }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #B7B1F5;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 5.4vw, 58px);
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+    margin: 0 0 20px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: #B7B1F5;
+  }
+  .hero .lede {
+    font-size: 18px;
+    color: #C9C6E8;
+    max-width: 30em;
+    margin: 0 0 32px;
+  }
+  .store-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #FFFFFF;
+    color: #111;
+    text-decoration: none;
+    padding: 12px 22px 12px 18px;
+    border-radius: 14px;
+    font-weight: 600;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .store-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+  .store-btn svg { width: 26px; height: 26px; flex-shrink: 0; }
+  .store-btn small { display: block; font-size: 11px; font-weight: 500; color: #555; line-height: 1.2; }
+  .store-btn span { display: block; font-size: 18px; line-height: 1.2; }
+  .hero-note { margin-top: 14px; font-size: 14px; color: #9A96C2; }
+
+  /* ─── Playable puzzle ─────────────────────────────────── */
+  .play-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 22px;
+    padding: 22px 22px 18px;
+    backdrop-filter: blur(6px);
+    justify-self: center;
+    width: 100%;
+    max-width: 440px;
+  }
+  .play-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+    font-size: 14px;
+    color: #C9C6E8;
+  }
+  .play-head strong { color: #FFFFFF; font-size: 16px; }
+  .board {
+    --cell: clamp(24px, 7.2vw, 32px);
+    display: grid;
+    gap: 0;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .clue-col, .clue-row {
+    color: #D8D5F2;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    transition: color 0.2s ease;
+  }
+  .clue-col {
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 5px;
+    line-height: 1.35;
+  }
+  .clue-row {
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    padding-right: 8px;
+  }
+  .clue-col.done, .clue-row.done { color: #6D68A0; }
+  .cell {
+    width: var(--cell);
+    height: var(--cell);
+    background: #F4F3FA;
+    border-right: 1px solid #CFCBE6;
+    border-bottom: 1px solid #CFCBE6;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.08s ease;
+  }
+  .cell.top { border-top: 1px solid #CFCBE6; }
+  .cell.left { border-left: 1px solid #CFCBE6; }
+  .cell.v5 { border-right: 2px solid #8C86C6; }
+  .cell.filled { background: #3C3489; }
+  .cell.crossed::before, .cell.crossed::after {
+    content: "";
+    position: absolute;
+    left: 22%; right: 22%;
+    top: 50%;
+    height: 2px;
+    background: #9A96C2;
+    border-radius: 1px;
+  }
+  .cell.crossed::before { transform: rotate(45deg); }
+  .cell.crossed::after { transform: rotate(-45deg); }
+  .board.solved .cell { cursor: default; }
+  .board.solved .cell.filled { background: #F5C842; }
+  .play-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #9A96C2;
+    min-height: 36px;
+  }
+  .mode-toggle {
+    display: inline-flex;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .mode-toggle button, .reset-btn {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border: 0;
+    background: transparent;
+    color: #C9C6E8;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .mode-toggle button[aria-pressed="true"] { background: #FFFFFF; color: var(--night); }
+  .reset-btn:hover { color: #FFFFFF; }
+  .solved-msg {
+    display: none;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(245,200,66,0.12);
+    border: 1px solid rgba(245,200,66,0.35);
+    font-size: 15px;
+    color: #F4EBCB;
+  }
+  .solved-msg strong { color: #FFFFFF; }
+  .play-card.is-solved .solved-msg { display: block; }
+  .play-card.is-solved .play-foot { display: none; }
+
+  /* ─── Sections ────────────────────────────────────────── */
+  section { padding: 80px 0; }
+  .section-head { max-width: 640px; margin-bottom: 40px; }
+  .section-head h2 {
+    font-size: clamp(28px, 3.6vw, 38px);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin: 0 0 12px;
+  }
+  .section-head p { color: var(--ink-soft); font-size: 17px; margin: 0; }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 18px 18px 14px;
+    margin: 0;
+  }
+  .tile svg { display: block; width: 100%; height: auto; aspect-ratio: 1; }
+  .tile svg rect { fill: var(--cell-filled); }
+  .tile figcaption { margin-top: 12px; font-size: 14px; line-height: 1.35; }
+  .tile figcaption b { display: block; font-size: 15px; }
+  .tile figcaption span { color: var(--ink-soft); }
+  .size-tag {
+    float: right;
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 24px;
+  }
+  .feature .icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    background: var(--parchment);
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+    color: var(--indigo);
+  }
+  .feature .icon svg { width: 22px; height: 22px; }
+  .feature h3 { font-size: 17px; margin: 0 0 6px; }
+  .feature p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  .cities-band { background: var(--parchment); }
+  .countries {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .country {
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 22px 24px;
+  }
+  .country h3 { margin: 0 0 10px; font-size: 18px; }
+  .country ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .country li {
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+  }
+
+  .pricing {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 760px;
+  }
+  .price-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 26px;
+  }
+  .price-card h3 { margin: 0 0 4px; font-size: 18px; }
+  .price-card .price { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 10px; }
+  .price-card p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  .cta {
+    text-align: center;
+    background: linear-gradient(170deg, var(--night) 0%, var(--night-deep) 100%);
+    color: #F1F0FA;
+    border-radius: 28px;
+    padding: 56px 24px;
+  }
+  .cta h2 { font-size: clamp(26px, 3.4vw, 36px); margin: 0 0 12px; letter-spacing: -0.02em; }
+  .cta p { color: #C9C6E8; margin: 0 0 28px; font-size: 17px; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding: 36px 0 48px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .foot nav { display: flex; flex-wrap: wrap; gap: 20px; }
+  .foot a { color: var(--ink-soft); }
+  .foot a:hover { color: var(--ink); }
+
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .features, .countries { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    .nav { margin-bottom: 36px; }
+    .nav-links a.hide-sm { display: none; }
+    .hero { padding-bottom: 56px; }
+    .hero .lede { font-size: 17px; }
+    .play-card { padding: 18px 14px 14px; }
+    section { padding: 56px 0; }
+    .features, .countries, .pricing { grid-template-columns: 1fr; }
+    .gallery { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .tile { padding: 14px 14px 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="nav">
+      <a class="brand" href="./">
+        <img src="apple-touch-icon.png" alt="" width="36" height="36">
+        Citygram
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a class="hide-sm" href="#puzzles">Puzzles</a>
+        <a href="https://zaimod.github.io/citygram-support/">Support</a>
+        <a href="https://zaimod.github.io/citygram-support/privacy/">Privacy</a>
+      </nav>
+    </div>
+
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Nonogram puzzles for iPhone</span>
+        <h1>Travel Europe <em>one puzzle</em> at a time.</h1>
+        <p class="lede">Fill the grid using the number clues and a picture appears — a croissant in Paris, a gondola in Venice, Big Ben in London. Each one adds a landmark to your travel passport.</p>
+        <a class="store-btn" href="https://apps.apple.com/app/id6781027728">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.37 12.63c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.1 5.88c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>
+          <div><small>Free on the</small><span>App Store</span></div>
+        </a>
+        <p class="hero-note">Free to play · One-time Remove Ads · No subscription</p>
+      </div>
+
+      <div class="play-card" id="play-card">
+        <div class="play-head">
+          <span><strong>Try one now</strong></span>
+          <span>Paris · 7 × 10</span>
+        </div>
+        <div class="board" id="board" role="grid" aria-label="Playable nonogram puzzle"></div>
+        <div class="play-foot">
+          <div class="mode-toggle" role="group" aria-label="Tool">
+            <button type="button" data-mode="fill" aria-pressed="true">Fill</button>
+            <button type="button" data-mode="cross" aria-pressed="false">Mark ✕</button>
+          </div>
+          <button type="button" class="reset-btn" id="reset">Reset</button>
+        </div>
+        <div class="solved-msg" role="status" aria-live="polite">
+          <strong>Solved — it's a croissant!</strong> In the app it unlocks the Eiffel Tower in your passport. 86 more puzzles are waiting.
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="puzzles">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Every city has its own pictures.</h2>
+        <p>Each puzzle is drawn by hand and checked to have exactly one solution — no guessing, only logic. Here are a few you'll solve along the way.</p>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </section>
+
+  <section class="cities-band">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>15 cities, 87 puzzles.</h2>
+        <p>Start in London and work your way to Naples. Grids grow from quick 10 × 10 warm-ups to 20 × 20 challenges.</p>
+      </div>
+      <div class="countries">
+        <div class="country">
+          <h3>United Kingdom</h3>
+          <ul><li>London</li><li>Edinburgh</li><li>Oxford</li><li>Cambridge</li><li>Bath</li></ul>
+        </div>
+        <div class="country">
+          <h3>France</h3>
+          <ul><li>Paris</li><li>Lyon</li><li>Nice</li><li>Bordeaux</li><li>Strasbourg</li></ul>
+        </div>
+        <div class="country">
+          <h3>Italy</h3>
+          <ul><li>Rome</li><li>Venice</li><li>Florence</li><li>Milan</li><li>Naples</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Made for a few minutes a day.</h2>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <h3>A daily puzzle</h3>
+          <p>A fresh puzzle every day. Solve it daily to keep your streak going.</p>
+        </div>
+        <div class="feature">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></div>
+          <h3>A travel passport</h3>
+          <p>Every solved picture unlocks a landmark and a fun fact about it.</p>
+        </div>
+        <div class="feature">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></div>
+          <h3>Achievements</h3>
+          <p>Earn stars for clean solves and unlock achievements like Speed Runner and World Traveler.</p>
+        </div>
+        <div class="feature">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></div>
+          <h3>Hints when stuck</h3>
+          <p>Reveal a cell when you need a nudge, and get extra lives when you run out.</p>
+        </div>
+        <div class="feature">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+          <h3>Light and dark</h3>
+          <p>Easy on the eyes in the evening, crisp in daylight.</p>
+        </div>
+        <div class="feature">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></div>
+          <h3>8 languages</h3>
+          <p>English, Ukrainian, German, French, Spanish, Portuguese, Japanese and Russian.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 0">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Free to play. Really.</h2>
+        <p>Every city and every puzzle is free. Ads keep it that way.</p>
+      </div>
+      <div class="pricing">
+        <div class="price-card">
+          <h3>Citygram</h3>
+          <div class="price">Free</div>
+          <p>All 87 puzzles, the daily puzzle, passport and achievements. Short ads between puzzles.</p>
+        </div>
+        <div class="price-card">
+          <h3>Remove Ads</h3>
+          <div class="price">One-time</div>
+          <p>Pay once, play without interruptions forever. No subscription, restorable on any of your devices.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 0">
+    <div class="wrap">
+      <div class="cta">
+        <h2>Your first city is waiting.</h2>
+        <p>Download Citygram and solve today's puzzle.</p>
+        <a class="store-btn" href="https://apps.apple.com/app/id6781027728">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.37 12.63c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.1 5.88c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>
+          <div><small>Free on the</small><span>App Store</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© 2026 Vladyslav Ivashchuk · Made in Ukraine</span>
+    <nav aria-label="Footer">
+      <a href="https://zaimod.github.io/citygram-support/">Support</a>
+      <a href="https://zaimod.github.io/citygram-support/privacy/">Privacy Policy</a>
+      <a href="mailto:ivashchukvladyslav@gmail.com">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Pictures taken verbatim from the app's puzzle packs ('#' = filled).
+  var CROISSANT = [
+    '....##....',
+    '..#.##.#..',
+    '.#.####.#.',
+    '.#.####.#.',
+    '##.####.##',
+    '####..####',
+    '###....###'
+  ];
+
+  var GALLERY = [
+    { title: 'Big Ben', city: 'London', rows: ['.......##...........','......####..........','.....######.........','.....######.........','....########........','....#.####.#........','....#.####.#........','....########........','.....######.........','.....#.##.#.........','.....#....#.........','.....#....#.........','.....######.........','.....#.##.#.........','.....#....#.........','.....#....#.........','....########........','..##############....','.################...','####################'] },
+    { title: 'Gondola', city: 'Venice', rows: ['.....#....','....###...','.....#....','....###.#.','.....#.#..','....#.#...','##......##','##########','.########.','..######..'] },
+    { title: 'Pizza', city: 'Naples', rows: ['....##....','..######..','.##.##.##.','.#.####.#.','#####.####','###.######','.#.###.##.','.###.####.','..######..','....##....'] },
+    { title: 'Cat', city: 'Paris', rows: ['..#............','..##...#.......','..######.......','...######......','...#.##.#......','############...','...##..##......','...#######.....','..############.','..####.####..#.','..####.####..##','..####.####..##','..####.#.....#.','...###.#.....#.','..##########...'] },
+    { title: 'Scottie Dog', city: 'Edinburgh', rows: ['.#......#.','.##.....#.','####....#.','##########','.#########','##########','.#########','..#######.','..##...##.','..##...##.'] },
+    { title: 'Owl', city: 'Bath', rows: ['.##..............##.','.###............###.','..###..######..###..','.....##########.....','....##.#########....','...#.....##.....#...','..##..#..##..#..##..','..#..###....###..#..','.###.###.##.###.###.','.###......#.....###.','.#####.##.###.#####.','.########.#########.','.######.....#######.','.####..######..####.','..###....##....###..','..###.###..##..###..','...##...####...##...','....##........##....','.....##########.....','####################'] },
+    { title: 'Violin', city: 'Milan', rows: ['......##.......','.....#..#......','.....#..#......','......###......','......###......','......###......','......###......','....#######....','...#########...','...#########...','....#.###.#....','#############..','#####.###.###..','###############','....#######....'] },
+    { title: 'Giraffe', city: 'Lyon', rows: ['.........#.#...','........#####..','........##.##..','........#####..','........###....','.......###.....','......####.....','.....####......','....#####......','....####.....##','.##.#######..#.','.####.####.....','.#########.....','##.#..#.#......','##.#....#......'] },
+    { title: 'Trident', city: 'Rome', rows: ['.#..##...#','.#..##..##','.##.#####.','..#####...','...####...','....##....','....##....','...##.....','..##......','###.......'] },
+    { title: 'Palm Tree', city: 'Nice', rows: ['....##....','..######..','...####.#.','#..#####.#','...####...','.....##...','....##....','...##.....','..##......','.###......'] }
+  ];
+
+  function runs(cells) {
+    var out = [], n = 0;
+    for (var i = 0; i < cells.length; i++) {
+      if (cells[i]) n++;
+      else if (n) { out.push(n); n = 0; }
+    }
+    if (n) out.push(n);
+    return out.length ? out : [0];
+  }
+
+  // ─── Gallery ─────────────────────────────────────────
+  var gallery = document.getElementById('gallery');
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  GALLERY.forEach(function (p) {
+    var h = p.rows.length, w = p.rows[0].length, side = Math.max(w, h);
+    var ox = (side - w) / 2, oy = (side - h) / 2;
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + side + ' ' + side);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', p.title + ' pixel art');
+    svg.setAttribute('shape-rendering', 'crispEdges');
+    p.rows.forEach(function (row, y) {
+      for (var x = 0; x < w; x++) {
+        if (row[x] !== '#') continue;
+        var r = document.createElementNS(SVG_NS, 'rect');
+        r.setAttribute('x', x + ox + 0.04);
+        r.setAttribute('y', y + oy + 0.04);
+        r.setAttribute('width', 0.92);
+        r.setAttribute('height', 0.92);
+        r.setAttribute('rx', 0.12);
+        svg.appendChild(r);
+      }
+    });
+    var fig = document.createElement('figure');
+    fig.className = 'tile';
+    fig.appendChild(svg);
+    var cap = document.createElement('figcaption');
+    cap.innerHTML = '<span class="size-tag">' + w + '×' + h + '</span><b></b><span></span>';
+    cap.querySelector('b').textContent = p.title;
+    cap.querySelector('b + span').textContent = p.city;
+    fig.appendChild(cap);
+    gallery.appendChild(fig);
+  });
+
+  // ─── Playable board ──────────────────────────────────
+  var solution = CROISSANT.map(function (r) { return r.split('').map(function (c) { return c === '#'; }); });
+  var H = solution.length, W = solution[0].length;
+  var rowClues = solution.map(runs);
+  var colClues = [];
+  for (var c = 0; c < W; c++) colClues.push(runs(solution.map(function (r) { return r[c]; })));
+
+  var board = document.getElementById('board');
+  var card = document.getElementById('play-card');
+  var state, cells = [], rowEls = [], colEls = [];
+  var mode = 'fill', solved = false;
+
+  board.style.gridTemplateColumns = 'auto repeat(' + W + ', var(--cell))';
+  board.appendChild(document.createElement('div'));
+  colClues.forEach(function (clue) {
+    var el = document.createElement('div');
+    el.className = 'clue-col';
+    el.innerHTML = clue.map(function (n) { return '<span>' + n + '</span>'; }).join('');
+    colEls.push(el);
+    board.appendChild(el);
+  });
+  for (var y = 0; y < H; y++) {
+    var rc = document.createElement('div');
+    rc.className = 'clue-row';
+    rc.innerHTML = rowClues[y].map(function (n) { return '<span>' + n + '</span>'; }).join('');
+    rowEls.push(rc);
+    board.appendChild(rc);
+    for (var x = 0; x < W; x++) {
+      var cell = document.createElement('div');
+      cell.className = 'cell' + (y === 0 ? ' top' : '') + (x === 0 ? ' left' : '') + (x === 4 ? ' v5' : '');
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+      cell.setAttribute('role', 'gridcell');
+      board.appendChild(cell);
+      cells.push(cell);
+    }
+  }
+
+  function reset() {
+    state = solution.map(function (r) { return r.map(function () { return 0; }); }); // 0 empty, 1 filled, 2 crossed
+    solved = false;
+    board.classList.remove('solved');
+    card.classList.remove('is-solved');
+    render();
+  }
+
+  function render() {
+    cells.forEach(function (el) {
+      var v = state[el.dataset.y][el.dataset.x];
+      el.classList.toggle('filled', v === 1);
+      el.classList.toggle('crossed', v === 2);
+    });
+    for (var y = 0; y < H; y++) {
+      rowEls[y].classList.toggle('done', runs(state[y].map(function (v) { return v === 1; })).join() === rowClues[y].join());
+    }
+    for (var x = 0; x < W; x++) {
+      colEls[x].classList.toggle('done', runs(state.map(function (r) { return r[x] === 1; })).join() === colClues[x].join());
+    }
+  }
+
+  function checkSolved() {
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      if ((state[y][x] === 1) !== solution[y][x]) return;
+    }
+    solved = true;
+    board.classList.add('solved');
+    card.classList.add('is-solved');
+  }
+
+  // Drag painting: the first cell decides whether the stroke paints or erases,
+  // like the app. Right-click (or the ✕ tool) marks cells instead of filling.
+  var painting = false, paintValue = 0, strokeMode = 'fill';
+  function cellAt(evt) {
+    var el = document.elementFromPoint(evt.clientX, evt.clientY);
+    return el && el.classList && el.classList.contains('cell') ? el : null;
+  }
+  function apply(el) {
+    var x = +el.dataset.x, y = +el.dataset.y;
+    if (state[y][x] === paintValue) return;
+    state[y][x] = paintValue;
+    render();
+  }
+  board.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  board.addEventListener('pointerdown', function (e) {
+    if (solved) return;
+    var el = cellAt(e);
+    if (!el) return;
+    e.preventDefault();
+    strokeMode = e.button === 2 ? 'cross' : mode;
+    var target = strokeMode === 'fill' ? 1 : 2;
+    var current = state[el.dataset.y][el.dataset.x];
+    paintValue = current === target ? 0 : target;
+    painting = true;
+    apply(el);
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!painting) return;
+    var el = cellAt(e);
+    if (el) apply(el);
+  });
+  window.addEventListener('pointerup', function () {
+    if (!painting) return;
+    painting = false;
+    checkSolved();
+  });
+
+  document.querySelectorAll('.mode-toggle button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      mode = btn.dataset.mode;
+      document.querySelectorAll('.mode-toggle button').forEach(function (b) {
+        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+      });
+    });
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+
+  reset();
+})();
+</script>
+</body>
+</html>
