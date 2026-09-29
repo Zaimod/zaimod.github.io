@@ -715,40 +715,60 @@
 
   // Drag painting: the first cell decides whether the stroke paints or erases,
   // like the app. Right-click (or the ✕ tool) marks cells instead of filling.
-  var painting = false, paintValue = 0, strokeMode = 'fill';
+  // A stroke stays on the row or column it first moves along, and only touches
+  // cells of its own kind: filling skips ✕ marks, erasing leaves the other kind.
+  var painting = false, paintValue = 0, target = 1;
+  var startX = 0, startY = 0, axis = null;
   function cellAt(evt) {
     var el = document.elementFromPoint(evt.clientX, evt.clientY);
     return el && el.classList && el.classList.contains('cell') ? el : null;
   }
-  function apply(el) {
-    var x = +el.dataset.x, y = +el.dataset.y;
-    if (state[y][x] === paintValue) return;
+  function apply(x, y) {
+    var v = state[y][x];
+    if (paintValue === 0 ? v !== target : v !== 0) return;
     state[y][x] = paintValue;
     render();
   }
-  board.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  board.addEventListener('pointerdown', function (e) {
-    if (solved) return;
-    var el = cellAt(e);
-    if (!el) return;
-    e.preventDefault();
-    strokeMode = e.button === 2 ? 'cross' : mode;
-    var target = strokeMode === 'fill' ? 1 : 2;
-    var current = state[el.dataset.y][el.dataset.x];
-    paintValue = current === target ? 0 : target;
-    painting = true;
-    apply(el);
-  });
-  window.addEventListener('pointermove', function (e) {
-    if (!painting) return;
-    var el = cellAt(e);
-    if (el) apply(el);
-  });
-  window.addEventListener('pointerup', function () {
+  function endStroke() {
     if (!painting) return;
     painting = false;
     checkSolved();
+  }
+  board.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  board.addEventListener('pointerdown', function (e) {
+    if (solved || painting) return;
+    var el = cellAt(e);
+    if (!el) return;
+    e.preventDefault();
+    target = e.button === 2 || mode === 'cross' ? 2 : 1;
+    startX = +el.dataset.x;
+    startY = +el.dataset.y;
+    paintValue = state[startY][startX] === target ? 0 : target;
+    axis = null;
+    painting = true;
+    apply(startX, startY);
   });
+  window.addEventListener('pointermove', function (e) {
+    if (!painting) return;
+    // A release outside the window never reaches pointerup; without this the
+    // stroke would keep painting on plain hover.
+    if (e.pointerType === 'mouse' && e.buttons === 0) { endStroke(); return; }
+    var el = cellAt(e);
+    if (!el) return;
+    var x = +el.dataset.x, y = +el.dataset.y;
+    if (x === startX && y === startY) return;
+    if (!axis) axis = Math.abs(x - startX) >= Math.abs(y - startY) ? 'row' : 'col';
+    if (axis === 'row') y = startY; else x = startX;
+    // Fill every cell between the start and the pointer, so fast moves don't skip.
+    var from = axis === 'row' ? Math.min(startX, x) : Math.min(startY, y);
+    var to = axis === 'row' ? Math.max(startX, x) : Math.max(startY, y);
+    for (var i = from; i <= to; i++) {
+      if (axis === 'row') apply(i, startY); else apply(startX, i);
+    }
+  });
+  window.addEventListener('pointerup', endStroke);
+  window.addEventListener('pointercancel', endStroke);
+  window.addEventListener('blur', endStroke);
 
   document.querySelectorAll('.mode-toggle button').forEach(function (btn) {
     btn.addEventListener('click', function () {
