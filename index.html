@@ -261,6 +261,37 @@
   .solved-msg strong { color: #FFFFFF; }
   .play-card.is-solved .solved-msg { display: block; }
   .play-card.is-solved .play-foot { display: none; }
+  .play-head .sub { margin-left: 8px; }
+  .lives { font-size: 16px; letter-spacing: 3px; color: var(--pin); }
+  .lives .lost { color: rgba(255,255,255,0.18); }
+  .cell.wrong { background: var(--pin); }
+  .board.over .cell { cursor: default; }
+  .over-msg {
+    display: none;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(229,72,77,0.12);
+    border: 1px solid rgba(229,72,77,0.4);
+    font-size: 15px;
+    color: #F6D5D6;
+  }
+  .over-msg strong { color: #FFFFFF; }
+  .over-msg button {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 10px;
+    display: block;
+    border: 0;
+    border-radius: 10px;
+    padding: 8px 16px;
+    background: #FFFFFF;
+    color: var(--night);
+    cursor: pointer;
+  }
+  .play-card.is-over .over-msg { display: block; }
+  .play-card.is-over .play-foot { display: none; }
 
   /* ─── Sections ────────────────────────────────────────── */
   section { padding: 80px 0; }
@@ -435,8 +466,8 @@
 
       <div class="play-card" id="play-card">
         <div class="play-head">
-          <span><strong>Try one now</strong></span>
-          <span>Paris · 7 × 10</span>
+          <span><strong>Try one now</strong><span class="sub">Paris · 7 × 10</span></span>
+          <span class="lives" id="lives" role="img" aria-label="3 lives left"></span>
         </div>
         <div class="board" id="board" role="grid" aria-label="Playable nonogram puzzle"></div>
         <div class="play-foot">
@@ -448,6 +479,10 @@
         </div>
         <div class="solved-msg" role="status" aria-live="polite">
           <strong>Solved — it's a croissant!</strong> In the app it unlocks the Eiffel Tower in your passport. 86 more puzzles are waiting.
+        </div>
+        <div class="over-msg" role="status" aria-live="polite">
+          <strong>Out of lives.</strong> Every wrong cell costs one of three lives — in the app a short video gives you another.
+          <button type="button" id="retry">Try again</button>
         </div>
       </div>
     </div>
@@ -653,8 +688,12 @@
 
   var board = document.getElementById('board');
   var card = document.getElementById('play-card');
+  // Same rules as the app's gameStore: 3 lives, and a wrong fill flashes red
+  // for 400 ms before turning into a ✕.
+  var LIVES = 3, MISTAKE_FLASH_MS = 400;
   var state, cells = [], rowEls = [], colEls = [];
-  var mode = 'fill', solved = false;
+  var mode = 'fill', solved = false, over = false, lives = LIVES, round = 0;
+  var livesEl = document.getElementById('lives');
 
   board.style.gridTemplateColumns = 'auto repeat(' + W + ', var(--cell))';
   board.appendChild(document.createElement('div'));
@@ -683,10 +722,14 @@
   }
 
   function reset() {
-    state = solution.map(function (r) { return r.map(function () { return 0; }); }); // 0 empty, 1 filled, 2 crossed
+    state = solution.map(function (r) { return r.map(function () { return 0; }); }); // 0 empty, 1 filled, 2 crossed, 3 wrong (flashing)
     solved = false;
-    board.classList.remove('solved');
-    card.classList.remove('is-solved');
+    over = false;
+    lives = LIVES;
+    round++; // orphans any pending mistake flash from the previous round
+    painting = false;
+    board.classList.remove('solved', 'over');
+    card.classList.remove('is-solved', 'is-over');
     render();
   }
 
@@ -695,7 +738,10 @@
       var v = state[el.dataset.y][el.dataset.x];
       el.classList.toggle('filled', v === 1);
       el.classList.toggle('crossed', v === 2);
+      el.classList.toggle('wrong', v === 3);
     });
+    livesEl.innerHTML = '<span>♥</span>'.repeat(lives) + '<span class="lost">♥</span>'.repeat(LIVES - lives);
+    livesEl.setAttribute('aria-label', lives + (lives === 1 ? ' life' : ' lives') + ' left');
     for (var y = 0; y < H; y++) {
       rowEls[y].classList.toggle('done', runs(state[y].map(function (v) { return v === 1; })).join() === rowClues[y].join());
     }
@@ -723,11 +769,34 @@
     var el = document.elementFromPoint(evt.clientX, evt.clientY);
     return el && el.classList && el.classList.contains('cell') ? el : null;
   }
+  // Returns false when the stroke has to stop (a wrong fill ends it, as in the app).
   function apply(x, y) {
     var v = state[y][x];
-    if (paintValue === 0 ? v !== target : v !== 0) return;
+    if (paintValue === 0 ? v !== target : v !== 0) return true;
+    if (paintValue === 1 && !solution[y][x]) {
+      mistake(x, y);
+      return false;
+    }
     state[y][x] = paintValue;
     render();
+    return true;
+  }
+  function mistake(x, y) {
+    painting = false;
+    state[y][x] = 3;
+    lives--;
+    if (lives <= 0) {
+      over = true;
+      board.classList.add('over');
+      card.classList.add('is-over');
+    }
+    render();
+    var thisRound = round;
+    setTimeout(function () {
+      if (round !== thisRound || state[y][x] !== 3) return;
+      state[y][x] = 2;
+      render();
+    }, MISTAKE_FLASH_MS);
   }
   function endStroke() {
     if (!painting) return;
@@ -736,7 +805,7 @@
   }
   board.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   board.addEventListener('pointerdown', function (e) {
-    if (solved || painting) return;
+    if (solved || over || painting) return;
     var el = cellAt(e);
     if (!el) return;
     e.preventDefault();
@@ -759,11 +828,13 @@
     if (x === startX && y === startY) return;
     if (!axis) axis = Math.abs(x - startX) >= Math.abs(y - startY) ? 'row' : 'col';
     if (axis === 'row') y = startY; else x = startX;
-    // Fill every cell between the start and the pointer, so fast moves don't skip.
-    var from = axis === 'row' ? Math.min(startX, x) : Math.min(startY, y);
-    var to = axis === 'row' ? Math.max(startX, x) : Math.max(startY, y);
-    for (var i = from; i <= to; i++) {
-      if (axis === 'row') apply(i, startY); else apply(startX, i);
+    // Walk from the start cell to the pointer so fast moves don't skip cells,
+    // stopping at the first wrong one.
+    var from = axis === 'row' ? startX : startY;
+    var to = axis === 'row' ? x : y;
+    var step = to >= from ? 1 : -1;
+    for (var i = from; i !== to + step; i += step) {
+      if (!(axis === 'row' ? apply(i, startY) : apply(startX, i))) break;
     }
   });
   window.addEventListener('pointerup', endStroke);
@@ -779,6 +850,7 @@
     });
   });
   document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('retry').addEventListener('click', reset);
 
   reset();
 })();
